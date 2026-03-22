@@ -1,0 +1,65 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_m4xv8"]
+[ext_resource type="Script" path="res://scripts/world/Main.gd" id="2_f7q20"]
+[ext_resource type="Script" path="res://scripts/actions/ActionDispatcher.gd" id="3_p4vdr"]
+[ext_resource type="Script" path="res://scripts/agent/AgentAdapter.gd" id="4_kd7f1"]
+[ext_resource type="Script" path="res://scripts/farm/FarmSystem.gd" id="5_farm0"]
+[ext_resource type="Script" path="res://scripts/ui/DebugHUD.gd" id="6_hud0"]
+
+[node name="Main" type="Node2D"]
+script = ExtResource("2_f7q20")
+
+[node name="FarmSystem" type="Node2D" parent="."]
+script = ExtResource("5_farm0")
+
+[node name="ActionDispatcher" type="Node" parent="."]
+script = ExtResource("3_p4vdr")
+
+[node name="Player" parent="." instance=ExtResource("1_m4xv8")]
+position = Vector2(640, 360)
+
+[node name="AgentAdapter" type="Node" parent="."]
+script = ExtResource("4_kd7f1")
+player_path = NodePath("../Player")
+world_path = NodePath("..")
+action_dispatcher_path = NodePath("../ActionDispatcher")
+
+[node name="NPC_Alice" type="Node2D" parent="."]
+position = Vector2(720, 360)
+
+[node name="ShippingBin" type="Node2D" parent="."]
+position = Vector2(560, 340)
+
+[node name="MapExit_Town" type="Node2D" parent="."]
+position = Vector2(760, 360)
+
+[node name="PlotMarkers" type="Node2D" parent="."]
+
+[node name="Plot_00" type="Node2D" parent="PlotMarkers"]
+position = Vector2(480, 420)
+
+[node name="Plot_10" type="Node2D" parent="PlotMarkers"]
+position = Vector2(520, 420)
+
+[node name="Plot_20" type="Node2D" parent="PlotMarkers"]
+position = Vector2(560, 420)
+
+[node name="Plot_01" type="Node2D" parent="PlotMarkers"]
+position = Vector2(480, 460)
+
+[node name="Plot_11" type="Node2D" parent="PlotMarkers"]
+position = Vector2(520, 460)
+
+[node name="Plot_21" type="Node2D" parent="PlotMarkers"]
+position = Vector2(560, 460)
+
+[node name="DebugHUD" type="CanvasLayer" parent="."]
+script = ExtResource("6_hud0")
+
+[node name="InfoLabel" type="Label" parent="DebugHUD"]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 620.0
+offset_bottom = 220.0
+theme_override_font_sizes/font_size = 18
