@@ -22,6 +22,9 @@ const ACTION_SCHEMAS := {
 	},
 	"talk_to": {
 		"required": ["npc_id"]
+	},
+	"rest": {
+		"required": []
 	}
 }
 

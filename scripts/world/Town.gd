@@ -1,6 +1,7 @@
 extends Node2D
 
 @onready var agent_adapter: AgentAdapter = $AgentAdapter
+@onready var replay_logger: ReplayLogger = $ReplayLogger
 var _demo_agent := DemoAgent.new()
 
 func get_agent_observation() -> Dictionary:
@@ -20,3 +21,8 @@ func run_demo_agent_loop_step() -> Dictionary:
 		"decision": decision,
 		"result": result
 	}
+
+func get_recent_replay_events(limit: int = 20) -> Array:
+	if replay_logger == null:
+		return []
+	return replay_logger.get_recent_events(limit)

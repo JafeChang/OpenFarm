@@ -43,6 +43,29 @@ func get_all_plots() -> Array:
 		result.append((_plots[tile] as Dictionary).duplicate(true))
 	return result
 
+
+func set_all_plots(serialized_plots: Array) -> void:
+	_plots.clear()
+	for entry in serialized_plots:
+		if not (entry is Dictionary):
+			continue
+		var data: Dictionary = entry
+		var tile_data: Dictionary = data.get("tile", {"x": 0, "y": 0})
+		var world_data: Dictionary = data.get("world_position", {"x": 0.0, "y": 0.0})
+		var tile := Vector2i(int(tile_data.get("x", 0)), int(tile_data.get("y", 0)))
+		_plots[tile] = {
+			"tile": tile,
+			"world_position": Vector2(float(world_data.get("x", 0.0)), float(world_data.get("y", 0.0))),
+			"state": str(data.get("state", "empty")),
+			"seed_id": str(data.get("seed_id", "")),
+			"growth": int(data.get("growth", 0)),
+			"growth_needed": int(data.get("growth_needed", 2))
+		}
+	if _plots.is_empty():
+		_init_plots()
+	for tile in _plots.keys():
+		farm_plot_changed.emit((_plots[tile] as Dictionary).duplicate(true))
+
 func get_nearest_tile(world_position: Vector2) -> Vector2i:
 	var best_tile := Vector2i.ZERO
 	var best_dist := INF
@@ -101,9 +124,7 @@ func harvest(tile: Vector2i) -> Dictionary:
 	}
 
 func _seed_to_crop(seed_id: String) -> String:
-	if seed_id.ends_with("_seed"):
-		return seed_id.trim_suffix("_seed")
-	return "crop"
+	return ItemDatabase.crop_from_seed(seed_id)
 
 func _tile_to_world(tile: Vector2i) -> Vector2:
 	return plot_origin + Vector2(tile.x * plot_spacing.x, tile.y * plot_spacing.y)

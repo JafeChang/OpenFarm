@@ -12,6 +12,16 @@ signal event_emitted(event_name: String, payload: Dictionary)
 @onready var _action_dispatcher: ActionDispatcher = get_node_or_null(action_dispatcher_path)
 
 var _observation_builder := ObservationBuilder.new()
+var _capabilities := {
+	"move_to": true,
+	"interact": true,
+	"plant": true,
+	"water": true,
+	"harvest": true,
+	"sell": true,
+	"talk_to": true,
+	"rest": true
+}
 
 func _ready() -> void:
 	if _action_dispatcher != null:
@@ -33,8 +43,24 @@ func submit_action(action_name: String, params: Dictionary = {}) -> Dictionary:
 			"energy_cost": 0.0,
 			"emitted_events": []
 		}
+	if not bool(_capabilities.get(action_name, false)):
+		return {
+			"success": false,
+			"error_code": "capability_blocked",
+			"time_cost": 0.0,
+			"energy_cost": 0.0,
+			"emitted_events": []
+		}
 
 	return _action_dispatcher.execute_for_actor(_player, action_name, params)
+
+func set_capabilities(next_capabilities: Dictionary) -> void:
+	for key in _capabilities.keys():
+		if next_capabilities.has(key):
+			_capabilities[key] = bool(next_capabilities[key])
+
+func get_capabilities() -> Dictionary:
+	return _capabilities.duplicate(true)
 
 func _on_action_started(action_name: String, payload: Dictionary) -> void:
 	event_emitted.emit("action_started", {

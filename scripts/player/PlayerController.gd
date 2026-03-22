@@ -53,6 +53,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			action_dispatcher.execute_for_actor(self, "interact", {
 				"target_id": target_id
 			})
+	elif Input.is_action_just_pressed("sleep_action"):
+		action_dispatcher.execute_for_actor(self, "rest", {})
+	elif Input.is_action_just_pressed("save_action"):
+		SaveSystem.save_game()
+	elif Input.is_action_just_pressed("load_action"):
+		SaveSystem.load_game()
 
 func _get_nearest_tile() -> Vector2i:
 	if farm_system == null:
@@ -64,7 +70,7 @@ func _find_interaction_target_id() -> String:
 	if world == null:
 		return ""
 
-	var candidates := ["NPC_Alice", "ShippingBin", "MapExit_Town", "MapExit_Farm"]
+	var candidates := ["NPC_Alice", "ShippingBin", "MapExit_Town", "MapExit_Farm", "Bed"]
 	var best_id := ""
 	var best_dist := INF
 	for candidate_id in candidates:

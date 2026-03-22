@@ -40,6 +40,8 @@ func execute_for_actor(actor: Node, action_name: String, params: Dictionary = {}
 			return sell(actor, str(params.get("item_id", "")), int(params.get("qty", 1)))
 		"talk_to":
 			return talk_to(actor, str(params.get("npc_id", "")))
+		"rest":
+			return rest(actor)
 		_:
 			return _result(false, "unknown_action", 0.0, 0.0)
 
@@ -105,12 +107,19 @@ func interact(actor: Node, target_id: String) -> Dictionary:
 	if target_id == "MapExit_Farm":
 		return _change_map("res://scenes/Main.tscn")
 
+	if target_id == "Bed":
+		return rest(actor)
+
 	var unknown_target := _result(false, "unknown_target", 0.0, 0.0)
 	_emit_action_finish("interact", unknown_target)
 	return unknown_target
 
 func plant(_actor: Node, seed_id: String, tile: Vector2i) -> Dictionary:
 	action_started.emit("plant", {"seed_id": seed_id, "tile": tile})
+	if not _has_enough_energy(2):
+		var no_energy := _result(false, "insufficient_energy", 0.0, 0.0)
+		_emit_action_finish("plant", no_energy)
+		return no_energy
 	if farm_system == null:
 		var missing_farm := _result(false, "farm_system_missing", 0.0, 0.0)
 		_emit_action_finish("plant", missing_farm)
@@ -144,6 +153,10 @@ func plant(_actor: Node, seed_id: String, tile: Vector2i) -> Dictionary:
 
 func water(_actor: Node, tile: Vector2i) -> Dictionary:
 	action_started.emit("water", {"tile": tile})
+	if not _has_enough_energy(1):
+		var no_energy := _result(false, "insufficient_energy", 0.0, 0.0)
+		_emit_action_finish("water", no_energy)
+		return no_energy
 	if farm_system == null:
 		var missing_farm := _result(false, "farm_system_missing", 0.0, 0.0)
 		_emit_action_finish("water", missing_farm)
@@ -164,6 +177,10 @@ func water(_actor: Node, tile: Vector2i) -> Dictionary:
 
 func harvest(_actor: Node, tile: Vector2i) -> Dictionary:
 	action_started.emit("harvest", {"tile": tile})
+	if not _has_enough_energy(2):
+		var no_energy := _result(false, "insufficient_energy", 0.0, 0.0)
+		_emit_action_finish("harvest", no_energy)
+		return no_energy
 	if farm_system == null:
 		var missing_farm := _result(false, "farm_system_missing", 0.0, 0.0)
 		_emit_action_finish("harvest", missing_farm)
@@ -177,7 +194,7 @@ func harvest(_actor: Node, tile: Vector2i) -> Dictionary:
 
 	var produce_id := String(farm_result.get("produce_id", "crop"))
 	GameState.add_item(produce_id, 1)
-	GameState.bump_quest_progress(1)
+	GameState.record_harvest(1)
 	GameState.adjust_energy(-2)
 	var time_data := GameState.advance_time(1)
 	time_advanced.emit(time_data)
@@ -199,12 +216,15 @@ func sell(_actor: Node, item_id: String, qty: int) -> Dictionary:
 		_emit_action_finish("sell", missing_item)
 		return missing_item
 
-	var price_table := {
-		"parsnip": 35,
-		"parsnip_seed": 8
-	}
-	var unit_price := int(price_table.get(item_id, 1))
+	var unit_price := ItemDatabase.get_sell_price(item_id)
+	if unit_price <= 0:
+		GameState.add_item(item_id, qty)
+		var invalid_item := _result(false, "item_not_sellable", 0.0, 0.0)
+		_emit_action_finish("sell", invalid_item)
+		return invalid_item
 	GameState.adjust_gold(unit_price * qty)
+	GameState.record_sell(item_id, qty)
+	quest_updated.emit(GameState.get_quest_data())
 	var time_data := GameState.advance_time(1)
 	time_advanced.emit(time_data)
 	inventory_changed.emit(GameState.inventory.duplicate(true))
@@ -219,10 +239,36 @@ func talk_to(_actor: Node, npc_id: String) -> Dictionary:
 		_emit_action_finish("talk_to", invalid)
 		return invalid
 
+	var dialogue := DialogueDatabase.get_dialogue(npc_id, GameState.get_quest_data())
+	var events := [{
+		"type": "npc_talked",
+		"npc_id": npc_id,
+		"line_id": str(dialogue.get("line_id", "")),
+		"text": str(dialogue.get("text", GameState.get_quest_status_text()))
+	}]
+	if npc_id == "NPC_Alice":
+		var reward_result := GameState.claim_quest_reward()
+		if bool(reward_result.get("ok", false)):
+			events.append({
+				"type": "quest_reward_claimed",
+				"gold": int(reward_result.get("reward_gold", 0))
+			})
+			quest_updated.emit(GameState.get_quest_data())
+
 	var time_data := GameState.advance_time(1)
 	time_advanced.emit(time_data)
-	var result := _result(true, "", 1.0, 0.0, [{"type": "npc_talked", "npc_id": npc_id}])
+	var result := _result(true, "", 1.0, 0.0, events)
 	_emit_action_finish("talk_to", result)
+	return result
+
+func rest(_actor: Node) -> Dictionary:
+	action_started.emit("rest", {})
+	var before_energy := GameState.energy
+	var time_data := GameState.sleep_until_morning()
+	time_advanced.emit(time_data)
+	var recovered := GameState.energy - before_energy
+	var result := _result(true, "", 8.0, 0.0, [{"type": "rested", "day": int(time_data.get("day", 1)), "energy_recovered": recovered}])
+	_emit_action_finish("rest", result)
 	return result
 
 func _change_map(scene_path: String) -> Dictionary:
@@ -239,18 +285,18 @@ func _change_map(scene_path: String) -> Dictionary:
 	_emit_action_finish("interact", result)
 	return result
 
+func _has_enough_energy(required: int) -> bool:
+	return GameState.energy >= required
+
 func _sell_all_sellable_items(_actor: Node) -> int:
 	var sold_count := 0
-	var price_table := {
-		"parsnip": 35,
-		"parsnip_seed": 8
-	}
-	for item_id in price_table.keys():
+	var sellable_items := ItemDatabase.get_sellable_items()
+	for item_id in sellable_items:
 		var qty := int(GameState.inventory.get(item_id, 0))
 		if qty <= 0:
 			continue
 		GameState.remove_item(item_id, qty)
-		GameState.adjust_gold(int(price_table[item_id]) * qty)
+		GameState.adjust_gold(ItemDatabase.get_sell_price(item_id) * qty)
 		sold_count += qty
 	inventory_changed.emit(GameState.inventory.duplicate(true))
 	return sold_count

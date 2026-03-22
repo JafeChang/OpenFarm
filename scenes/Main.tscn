@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=9 format=3]
 
 [ext_resource type="PackedScene" path="res://scenes/player/Player.tscn" id="1_m4xv8"]
 [ext_resource type="Script" path="res://scripts/world/Main.gd" id="2_f7q20"]
@@ -6,6 +6,9 @@
 [ext_resource type="Script" path="res://scripts/agent/AgentAdapter.gd" id="4_kd7f1"]
 [ext_resource type="Script" path="res://scripts/farm/FarmSystem.gd" id="5_farm0"]
 [ext_resource type="Script" path="res://scripts/ui/DebugHUD.gd" id="6_hud0"]
+[ext_resource type="Script" path="res://scripts/agent/ReplayLogger.gd" id="7_replay"]
+[ext_resource type="PackedScene" path="res://scenes/ui/GameHUD.tscn" id="8_gamehud"]
+
 
 [node name="Main" type="Node2D"]
 script = ExtResource("2_f7q20")
@@ -34,6 +37,9 @@ position = Vector2(560, 340)
 [node name="MapExit_Town" type="Node2D" parent="."]
 position = Vector2(760, 360)
 
+[node name="Bed" type="Node2D" parent="."]
+position = Vector2(620, 520)
+
 [node name="PlotMarkers" type="Node2D" parent="."]
 
 [node name="Plot_00" type="Node2D" parent="PlotMarkers"]
@@ -57,9 +63,15 @@ position = Vector2(560, 460)
 [node name="DebugHUD" type="CanvasLayer" parent="."]
 script = ExtResource("6_hud0")
 
+[node name="ReplayLogger" type="Node" parent="."]
+script = ExtResource("7_replay")
+adapter_path = NodePath("../AgentAdapter")
+
+
+[node name="GameHUD" parent="." instance=ExtResource("8_gamehud")]
 [node name="InfoLabel" type="Label" parent="DebugHUD"]
 offset_left = 20.0
 offset_top = 20.0
 offset_right = 620.0
-offset_bottom = 220.0
+offset_bottom = 320.0
 theme_override_font_sizes/font_size = 18
