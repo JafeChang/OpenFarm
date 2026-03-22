@@ -1,0 +1,42 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/GameHUD.gd" id="1_hud"]
+
+[node name="GameHUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+action_dispatcher_path = NodePath("../ActionDispatcher")
+
+[node name="RootPanel" type="Panel" parent="."]
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 720.0
+offset_bottom = 196.0
+
+[node name="Margin" type="MarginContainer" parent="RootPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+
+[node name="VBox" type="VBoxContainer" parent="RootPanel/Margin"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="TimeLabel" type="Label" parent="RootPanel/Margin/VBox"]
+text = "Day 1 · morning"
+
+[node name="StatLabel" type="Label" parent="RootPanel/Margin/VBox"]
+text = "Energy: 100    Gold: 200"
+
+[node name="InventoryLabel" type="Label" parent="RootPanel/Margin/VBox"]
+text = "Inventory: -"
+
+[node name="QuestLabel" type="Label" parent="RootPanel/Margin/VBox"]
+text = "Quest: -"
+
+[node name="MessageLabel" type="Label" parent="RootPanel/Margin/VBox"]
+text = "Message: Welcome"
